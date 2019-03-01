@@ -128,12 +128,30 @@ pintos_init (void)
 #endif
 
   printf ("Boot complete.\n");
-  
+
   if (*argv != NULL) {
     /* Run actions specified on kernel command line. */
     run_actions (argv);
   } else {
-    // TODO: no command line passed to kernel. Run interactively 
+    char command_in[256];
+    int ptr;
+    char c;
+    while (1) 
+     {
+       printf("CS318> ");
+       c = 0 ; ptr = 0;
+       for (c = 0, ptr = 0 ; c != '\r' ; ++ptr){
+        c = input_getc();
+        if (c != '\r')putchar(c);
+        command_in[ptr] = c;
+       }
+       command_in[--ptr] = '\0';
+       putchar('\n');
+       if (!strcmp(command_in, "whoami"))
+        puts("Kiang Chemin");
+       else
+        puts("invalid command.");
+     }
   }
 
   /* Finish up. */
