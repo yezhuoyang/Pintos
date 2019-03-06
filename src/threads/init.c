@@ -72,6 +72,42 @@ static void locate_block_device (enum block_type, const char *name);
 
 int pintos_init (void) NO_RETURN;
 
+int get_line (char *);
+
+int
+get_line (char * buffer)
+{
+  int current_input_char = 0;
+  char * buffer_pointer = buffer;
+  while (current_input_char != '\r')
+   {
+    current_input_char = input_getc ();
+    if (current_input_char == '\b')
+     {
+      if (buffer_pointer != buffer)
+       {
+        printf ("\b \b");
+        --buffer_pointer;
+       }
+     }
+    else 
+     {
+      if (current_input_char == '\r')
+       {
+        *buffer_pointer = '\0';
+        putchar ('\n');
+       } 
+      else 
+       {
+        *(buffer_pointer++) = current_input_char;
+        putchar (current_input_char);
+       }
+     }
+   }
+  return 0;
+}
+
+
 /* Pintos main entry point. */
 int
 pintos_init (void)
@@ -134,19 +170,10 @@ pintos_init (void)
     run_actions (argv);
   } else {
     char command_in[256];
-    int ptr;
-    char c;
     while (1) 
      {
        printf("CS318> ");
-       c = 0 ; ptr = 0;
-       for (c = 0, ptr = 0 ; c != '\r' ; ++ptr){
-        c = input_getc();
-        if (c != '\r')putchar(c);
-        command_in[ptr] = c;
-       }
-       command_in[--ptr] = '\0';
-       putchar('\n');
+       get_line(command_in);
        if (!strcmp(command_in, "whoami"))
         puts("Kiang Chemin");
        else
