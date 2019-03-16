@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "syscall.h": "c",
+        "thread": "c",
+        "functional": "c",
+        "memory": "cpp",
+        "palloc.h": "c",
+        "xstddef": "c"
+    }
+}
