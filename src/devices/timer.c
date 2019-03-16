@@ -186,6 +186,19 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+
+  /* updating data for mlfqs */
+  if (thread_mlfqs)
+  {
+    /* increase recent_cpu by 1 */
+    thread_update_recent_cpu_per_tick ();
+    /* check priority recalculation */
+    if (ticks % 4 == 0)
+      thread_recalculate_priority ( thread_current() );
+    if (ticks % TIMER_FREQ == 0)
+      thread_recalculate_load_avg_and_recent_cpu ();
+  }
+
   /* wake up sleeping threads,
      sleep is not allowed during interruption */
   for (; !list_empty (&sleeping_threads); )

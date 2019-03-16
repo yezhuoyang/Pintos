@@ -111,6 +111,10 @@ struct thread
     int original_priority;       
     struct list locks;                  /* The locks current thread hold */      
     struct lock *waiting_lock;      /* The thread current thread is waiting for */
+
+    /* MLFQS use */
+    int nice;
+    int recent_cpu;
   };
 
 /* If false (default), use round-robin scheduler.
@@ -145,6 +149,10 @@ int thread_get_priority (void);
 void thread_set_priority (int);
 void thread_donate_priority (struct thread *);
 void thread_update_priority (struct thread *);
+
+void thread_update_recent_cpu_per_tick (void);
+void thread_recalculate_priority (struct thread *);
+void thread_recalculate_load_avg_and_recent_cpu (void);
 
 int thread_get_nice (void);
 void thread_set_nice (int);

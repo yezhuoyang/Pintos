@@ -226,6 +226,7 @@ lock_acquire (struct lock *lock)
 
   cur = thread_current ();
   lock->holder = cur;
+  
   if (!thread_mlfqs)
   {
     cur->waiting_lock = NULL;
@@ -297,7 +298,7 @@ lock_release (struct lock *lock)
     list_remove (&lock->elem);
     thread_update_priority (thread_current ());
   }
-  
+
   sema_up (&lock->semaphore);
 
   intr_set_level (old_level);

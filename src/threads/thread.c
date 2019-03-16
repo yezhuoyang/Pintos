@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "lib/fixed_floating_point.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -58,7 +59,8 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
-
+int load_average;
+static void recalculate_recent_cpu (struct thread *t, void *aux);
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
@@ -98,6 +100,8 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+
+  load_average = CONVERT_FF (0);
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -392,35 +396,79 @@ thread_donate_priority (struct thread *t)
   intr_set_level(old_level);
 }
 
+void 
+thread_update_recent_cpu_per_tick()
+{
+  struct thread *cur = thread_current ();
+  if (cur != idle_thread)
+    cur->recent_cpu = ADD_FI(cur->recent_cpu, 1);
+}
+
+void 
+thread_recalculate_priority (struct thread *cur)
+{
+  if (cur == idle_thread)
+    return;
+  cur->priority = SUB_FF (CONVERT_FF (PRI_MAX), DIV_FI (cur->recent_cpu, 4));
+  cur->priority = SUB_FF (cur->priority, CONVERT_FF (cur->nice * 2));
+  cur->priority = CONVERT_DOWN (cur->priority);
+  if (cur->priority < PRI_MIN) cur->priority = PRI_MIN;
+  if (cur->priority > PRI_MAX) cur->priority = PRI_MAX;
+}
+
+void
+thread_recalculate_load_avg_and_recent_cpu ()
+{
+  struct thread *cur = thread_current ();
+  /* load average */
+  size_t ready_threads = list_size (&ready_list);
+  if (cur != idle_thread)
+    ready_threads = ready_threads + 1;
+  int FF_ready_threads = CONVERT_FF (ready_threads);
+  int FF_59_60 = DIV_FI (CONVERT_FF (59), 60);
+  int FF_1_60 = DIV_FI (CONVERT_FF (1), 60);
+  load_average = ADD_FF (MUL_FF (FF_59_60, load_average), MUL_FF (FF_1_60, FF_ready_threads));
+  /* rencent cpu */
+  thread_foreach (recalculate_recent_cpu, NULL);
+}
+
+static void
+recalculate_recent_cpu (struct thread *t, void *aux UNUSED)
+{
+  int double_load_average = MUL_FI (load_average, 2);
+  t->recent_cpu = MUL_FF (DIV_FF (double_load_average, ADD_FI (double_load_average, 1)), t->recent_cpu);
+  t->recent_cpu = ADD_FI (t->recent_cpu, t->nice);
+  thread_recalculate_priority (t);
+}
+
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice) 
 {
-  /* Not yet implemented. */
+  thread_current ()->nice = nice;
+  thread_recalculate_priority (thread_current ());
+  thread_yield ();
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return thread_current ()->nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return CONVERT_DOWN (MUL_FI(load_average, 100));
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return CONVERT_DOWN (MUL_FI(thread_current ()->recent_cpu, 100));
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -514,6 +562,12 @@ init_thread (struct thread *t, const char *name, int priority)
   t->original_priority = priority;
   list_init (&t->locks);
   t->waiting_lock = NULL;
+
+  if (t == initial_thread)
+    t->nice = 0;
+  else
+    t->nice = thread_current ()->nice;
+  t->recent_cpu = CONVERT_FF (0);
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
