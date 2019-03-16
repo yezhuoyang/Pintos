@@ -689,6 +689,7 @@ schedule (void)
 static tid_t
 allocate_tid (void) 
 {
+  ASSERT (running_thread ()->status == THREAD_RUNNING);
   static tid_t next_tid = 1;
   tid_t tid;
 

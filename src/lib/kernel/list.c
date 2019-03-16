@@ -405,7 +405,6 @@ void
 list_sort (struct list *list, list_less_func *less, void *aux)
 {
   size_t output_run_cnt;        /* Number of runs output in current pass. */
-  printf("list sort:%p ", less);
   ASSERT (list != NULL);
   ASSERT (less != NULL);
 
