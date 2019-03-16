@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/synch.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -87,7 +88,7 @@ struct thread
     enum thread_status status;          /* Thread state. */
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
-    int priority;                       /* Priority. */
+    int priority;                       /* Priority, which may be different from original priority because of donation */
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
@@ -100,6 +101,16 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+    /* Owned by timer.c */
+    int64_t wake_up_ticks;
+    struct list_elem sleepelem;         /* List element for sleeping threads list. */
+    struct semaphore sleep_semaphore;   /* semaphore to control thread sleeping*/
+
+    /* Priority donation use */
+    int original_priority;       
+    struct list locks;                  /* The locks current thread hold */      
+    struct lock *waiting_lock;      /* The thread current thread is waiting for */
   };
 
 /* If false (default), use round-robin scheduler.
@@ -132,10 +143,16 @@ void thread_foreach (thread_action_func *, void *);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
+void thread_donate_priority (struct thread *);
+void thread_update_priority (struct thread *);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+bool less_sleeping_threads (const struct list_elem *, const struct list_elem *, void * aux UNUSED);
+bool less_priority_threads (const struct list_elem *, const struct list_elem *, void * aux UNUSED);
+bool great_priority_threads (const struct list_elem *, const struct list_elem *, void * aux UNUSED);
 
 #endif /* threads/thread.h */

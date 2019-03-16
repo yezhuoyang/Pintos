@@ -45,6 +45,7 @@ test_sleep (int thread_cnt, int iterations)
 
   /* Allocate memory. */
   output = malloc (sizeof *output * iterations * thread_cnt * 2);
+  
   if (output == NULL)
     PANIC ("couldn't allocate memory for test");
 
