@@ -19,7 +19,7 @@
 #include "threads/vaddr.h"
 
 static thread_func start_process NO_RETURN;
-static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static bool load (char *cmdline, void (**eip) (void), void **esp);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -88,6 +88,9 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  while (1){
+  
+  }
   return -1;
 }
 
@@ -110,6 +113,8 @@ process_exit (void)
          directory before destroying the process's page
          directory, or our active page directory will be one
          that's been freed (and cleared). */
+
+      
       cur->pagedir = NULL;
       pagedir_activate (NULL);
       pagedir_destroy (pd);
@@ -195,7 +200,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, int argc, char * argv[]);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -206,7 +211,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
 bool
-load (const char *file_name, void (**eip) (void), void **esp) 
+load (char *file_name, void (**eip) (void), void **esp) 
 {
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
@@ -215,6 +220,21 @@ load (const char *file_name, void (**eip) (void), void **esp)
   bool success = false;
   int i;
 
+  /* Parse the arguments */
+  char *token, *save_ptr;
+
+  int argc = 0;
+  char * argv[64];
+  //char fcopy[256];
+  //strcpy(fcopy, file_name, )
+  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
+       token = strtok_r (NULL, " ", &save_ptr))
+       {
+         argv[argc++] = token;
+       }
+    
+  //printf("!!%s\n",argv[1]);
+
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
@@ -222,10 +242,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
-  file = filesys_open (file_name);
+  file = filesys_open (argv[0]);
   if (file == NULL) 
     {
-      printf ("load: %s: open failed\n", file_name);
+      printf ("load: %s: open failed\n", argv[0]);
       goto done; 
     }
 
@@ -302,7 +322,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  if (!setup_stack (esp, argc, argv))
     goto done;
 
   /* Start address. */
@@ -344,7 +364,7 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
   /* The virtual memory region must both start and end within the
      user address space range. */
   if (!is_user_vaddr ((void *) phdr->p_vaddr))
-    return false;
+    return false; 
   if (!is_user_vaddr ((void *) (phdr->p_vaddr + phdr->p_memsz)))
     return false;
 
@@ -427,17 +447,46 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, int argc, char * argv[]) 
 {
   uint8_t *kpage;
   bool success = false;
 
+  void *argv_arr[256];
+
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
+      *esp = PHYS_BASE;
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE;
+       {
+        for (int i = argc - 1 ; i >= 0 ; --i)
+         {
+           
+          *esp -= strlen(argv[i]) + 1;
+          memcpy(*esp, argv[i], strlen(argv[i]) + 1);
+          argv_arr[i]  = *esp;
+         }
+        /* Alignment */
+        *esp = (void *)((unsigned int)(*esp) & ~3);
+
+        *esp -= sizeof(void *);
+        *((void **)*esp) = 0;
+
+        *esp -= argc * sizeof (void *);
+        memcpy(*esp, argv_arr, argc * sizeof (void *));
+
+        void * old_esp = *esp;
+        *esp -= sizeof(void *);
+        *((void **)*esp) = old_esp;
+
+        *esp -= sizeof(void *);
+        *((int *)*esp) = argc;
+
+        *esp -= sizeof(void *);
+        *((int *)*esp) = 0;
+       }
       else
         palloc_free_page (kpage);
     }

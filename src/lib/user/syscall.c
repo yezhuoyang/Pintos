@@ -1,6 +1,6 @@
 #include <syscall.h>
 #include "../syscall-nr.h"
-
+#include <stdio.h>
 /* Invokes syscall NUMBER, passing no arguments, and returns the
    return value as an `int'. */
 #define syscall0(NUMBER)                                        \
@@ -71,6 +71,7 @@ halt (void)
 void
 exit (int status)
 {
+  //printf("@@@%d\n", status);
   syscall1 (SYS_EXIT, status);
   NOT_REACHED ();
 }
