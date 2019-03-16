@@ -38,7 +38,7 @@ static struct list sleeping_threads;
 void
 timer_init (void) 
 {
-  /* Initialize sleeping thread list and its lock */
+  /* Initialize sleeping thread list */
   list_init (&sleeping_threads);
 
   pit_configure_channel (0, 2, TIMER_FREQ);
