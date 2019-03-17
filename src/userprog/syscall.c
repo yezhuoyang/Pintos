@@ -77,7 +77,7 @@ get_syscall_arg (struct intr_frame *f, uint32_t * buffer, int argc)
 static void 
 sys_exit (int status)
 {
-  //thread_current()->exit_status = status;
+  thread_current()->exit_status = status;
   printf("%s: exit(%d)\n", thread_current()->name, status);
   thread_exit();
 }

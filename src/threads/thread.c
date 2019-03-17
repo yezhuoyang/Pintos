@@ -297,12 +297,15 @@ thread_exit (void)
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
+
+  sema_up(&thread_current()->be_waited);
+  list_remove (&thread_current()->child_elem);
+
   intr_disable ();
   list_remove (&thread_current()->allelem);
   thread_current ()->status = THREAD_DYING;
 
-  //sema_up(&thread_current()->be_waited);
-  //list_remove (&thread_current()->child_elem);
+
 
   schedule ();
   NOT_REACHED ();
@@ -579,10 +582,10 @@ init_thread (struct thread *t, const char *name, int priority)
 
   
 
-  //sema_init (&t->be_waited, 0);
-  //list_init (&t->child_list);
-  //if (t != running_thread())
-  //  list_push_back (&running_thread()->child_list, &t->child_elem);
+  sema_init (&t->be_waited, 0);
+  list_init (&t->child_list);
+  if (t != running_thread())
+    list_push_back (&running_thread()->child_list, &t->child_elem);
   //printf("everything is ok1\n");
 }
 
@@ -647,7 +650,12 @@ thread_schedule_tail (struct thread *prev)
 
 #ifdef USERPROG
   /* Activate the new address space. */
-  process_activate ();
+  
+  /*
+  If prev is a null pointer, which means the thread is not switched.
+  */
+  if (prev)
+    process_activate ();
 #endif
 
   /* If the thread we switched from is dying, destroy its struct

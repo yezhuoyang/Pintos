@@ -88,21 +88,21 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(1);
-  return -1;
-  // struct list_elem *e;
-  // struct thread *child_thread = NULL;
-  // for (e = list_begin (&thread_current() -> child_list);
-  //      e != list_end (&thread_current() -> child_list);
-  //      e = list_next (e))
-  //  {
-  //   child_thread = list_entry (e, struct thread, child_elem);
-  //   if (child_thread -> tid == child_tid) break;
-  //  }
-  // if (!child_thread || child_thread -> tid != child_tid) return -1;
-  // list_remove(e);
-  // sema_down(&child_thread -> be_waited);
-  // return child_thread -> exit_status;
+  //while(1);
+  //return -1;
+  struct list_elem *e;
+  struct thread *child_thread = NULL;
+  for (e = list_begin (&thread_current() -> child_list);
+       e != list_end (&thread_current() -> child_list);
+       e = list_next (e))
+   {
+    child_thread = list_entry (e, struct thread, child_elem);
+    if (child_thread -> tid == child_tid) break;
+   }
+  if (!child_thread || child_thread -> tid != child_tid) return -1;
+  list_remove(e);
+  sema_down(&child_thread -> be_waited);
+  return child_thread -> exit_status;
 }
 
 /* Free the current process's resources. */
