@@ -17,6 +17,7 @@ enum thread_status
 
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
+typedef int pid_t;
 typedef int tid_t;
 #define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
 
@@ -81,6 +82,17 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+
+
+struct file_descriptor
+  {
+    int fd;
+    char name[16];
+    struct file * file_pointer;
+    struct list_elem elem;
+  };
+
+
 struct thread
   {
     /* Owned by thread.c. */
@@ -99,10 +111,19 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
 
     uint32_t exit_status;
+
+    struct semaphore exit_sem;
+    bool to_exit;
     struct semaphore be_waited;
     
     struct list child_list;
     struct list_elem child_elem;
+
+    struct list file_descriptors;
+    unsigned fd_index;
+
+    struct file * prog_file;
+    
 #endif
 
     /* Owned by thread.c. */

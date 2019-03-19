@@ -22,6 +22,7 @@
 #include "threads/palloc.h"
 #include "threads/pte.h"
 #include "threads/thread.h"
+#include "threads/input.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #include "userprog/exception.h"
@@ -72,40 +73,7 @@ static void locate_block_device (enum block_type, const char *name);
 
 int pintos_init (void) NO_RETURN;
 
-int get_line (char *);
 
-int
-get_line (char * buffer)
-{
-  int current_input_char = 0;
-  char * buffer_pointer = buffer;
-  while (current_input_char != '\r')
-   {
-    current_input_char = input_getc ();
-    if (current_input_char == '\b')
-     {
-      if (buffer_pointer != buffer)
-       {
-        printf ("\b \b");
-        --buffer_pointer;
-       }
-     }
-    else 
-     {
-      if (current_input_char == '\r')
-       {
-        *buffer_pointer = '\0';
-        putchar ('\n');
-       } 
-      else 
-       {
-        *(buffer_pointer++) = current_input_char;
-        putchar (current_input_char);
-       }
-     }
-   }
-  return 0;
-}
 
 
 /* Pintos main entry point. */

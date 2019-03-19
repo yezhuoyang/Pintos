@@ -37,9 +37,22 @@ process_execute (const char *file_name)
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
+  char fn[32], *sptr, *dptr;
 
+  /* Copy the filename */
+  for (sptr = file_name, dptr = fn; *sptr && *sptr != ' '; ++sptr, ++dptr)
+    *dptr = *sptr;
+  *dptr = '\0';
+
+  struct proc_init *info = malloc(sizeof(struct proc_init));
+  info->name = fn_copy;
+  sema_init (&info->init_sem, 0);
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  
+  tid = thread_create (fn, PRI_DEFAULT, start_process, info);
+  sema_down (&info->init_sem);
+  if (!info->success)
+    return -1;
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -48,9 +61,10 @@ process_execute (const char *file_name)
 /* A thread function that loads a user process and starts it
    running. */
 static void
-start_process (void *file_name_)
+start_process (void * info_)
 {
-  char *file_name = file_name_;
+  struct proc_init *info = (struct proc_init *)info_;
+  char *file_name = info->name;
   struct intr_frame if_;
   bool success;
 
@@ -63,8 +77,17 @@ start_process (void *file_name_)
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
+  if (!success)
+   {
+    info->success = false;
+    sema_up (&info->init_sem);
     thread_exit ();
+   }
+  else
+   {
+    info->success = true;
+    sema_up (&info->init_sem);
+   }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -88,8 +111,16 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  //while(1);
-  //return -1;
+  //printf("%d wait for %d setted\n", thread_current()->tid, child_tid);
+  if(list_empty(&thread_current()->child_list))
+  {
+    //printf("empty\n");
+    return -1;
+  }
+  //if (child_tid == 12){
+  //  printf("FUCK\n");
+  //}
+
   struct list_elem *e;
   struct thread *child_thread = NULL;
   for (e = list_begin (&thread_current() -> child_list);
@@ -99,10 +130,20 @@ process_wait (tid_t child_tid UNUSED)
     child_thread = list_entry (e, struct thread, child_elem);
     if (child_thread -> tid == child_tid) break;
    }
-  if (!child_thread || child_thread -> tid != child_tid) return -1;
+  if (!child_thread || child_thread -> tid != child_tid) {
+    //printf("not found %d\n", child_tid);
+    return -1;
+  }
+  //e->being_waited = true;
   list_remove(e);
-  sema_down(&child_thread -> be_waited);
-  return child_thread -> exit_status;
+  //printf("found: %d\n",child_thread->tid);
+  //if (child_thread -> status == THREAD_DYING)
+  //  return child_thread->exit_status;
+  sema_down (&child_thread -> be_waited);
+  int r = child_thread -> exit_status;
+  sema_up (&child_thread-> exit_sem);
+  //printf("found: %d\n",r);
+  return r;
 }
 
 /* Free the current process's resources. */
@@ -254,11 +295,19 @@ load (char *file_name, void (**eip) (void), void **esp)
 
   /* Open executable file. */
   file = filesys_open (argv[0]);
+
+  
+
+
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", argv[0]);
       goto done; 
     }
+
+  /* Disable the write on the executable file*/
+  t->prog_file = file;
+  file_deny_write (file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -343,7 +392,7 @@ load (char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  // file_close (file);
   return success;
 }
 

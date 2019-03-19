@@ -5,6 +5,17 @@
         "functional": "c",
         "memory": "cpp",
         "palloc.h": "c",
-        "xstddef": "c"
+        "xstddef": "c",
+        "stdio.h": "c",
+        "initializer_list": "c",
+        "list": "c",
+        "type_traits": "c",
+        "vector": "c",
+        "xhash": "c",
+        "xstring": "c",
+        "xutility": "c",
+        "input.h": "c",
+        "*.inc": "c",
+        "process.h": "c"
     }
 }
