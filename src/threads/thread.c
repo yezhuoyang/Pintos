@@ -298,24 +298,15 @@ thread_exit (void)
 
 #ifdef USERPROG
   process_exit ();
-#endif
 
-
+  /* Close the file pointer of the executing file */
   if (thread_current()->prog_file)
   {
    file_close (thread_current()->prog_file);
    thread_current()->prog_file = NULL;
   }
-  
-  while (!list_empty(&thread_current()->file_descriptors))
-  {
-    struct list_elem *e = list_pop_front(&thread_current()->file_descriptors);
-    struct file_descriptor * fd_s = list_entry(e, struct file_descriptor, elem);
-    file_close(fd_s -> file_pointer);
-    free (fd_s);
-  }
 
-
+  /* Release the locks held by the thread */
   struct list_elem *e;
   for (e = list_begin (&thread_current()->locks); 
        e != list_end (&thread_current()->locks);
@@ -325,6 +316,7 @@ thread_exit (void)
     lock_release(lock);
   }  
 
+  /* Continue the exit process of child thread */
   lock_acquire(&exit_lock);
   for (e = list_begin (&thread_current()->child_list); 
        e != list_end (&thread_current()->child_list);
@@ -336,19 +328,22 @@ thread_exit (void)
   lock_release(&exit_lock);
 
   sema_up(&thread_current()->be_waited);
+
+  /* Block the exit process until the parent thread exit */
   if (thread_current() != initial_thread)
     sema_down(&thread_current()->exit_sem);
   
   lock_acquire(&exit_lock);
   lock_release(&exit_lock);
 
+  list_remove (&thread_current()->child_elem);
+#endif
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
 
   intr_disable ();
-  
-  list_remove (&thread_current()->child_elem);
+
   list_remove (&thread_current()->allelem);
   thread_current ()->status = THREAD_DYING;
 
@@ -625,7 +620,7 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
 
-  
+  #ifdef USERPROG
   sema_init (&t->exit_sem, 0);
   // t->to_exit = false;
   sema_init (&t->be_waited, 0);
@@ -638,6 +633,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->fd_index = 2;
 
   t->prog_file = NULL;
+  #endif
   //printf("everything is ok1\n");
 }
 

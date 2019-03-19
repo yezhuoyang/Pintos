@@ -23,8 +23,6 @@ static uint32_t syscall_args[4];
 static int  get_syscall_type (struct intr_frame *);
 static void get_syscall_arg (struct intr_frame *, uint32_t *, int);
 
-// static thread_action_func check_filename_open;
-
 static bool sys_create (const char *file, unsigned initial_size);
 static bool sys_remove (const char *file);
 static int sys_open (const char *file);
@@ -39,8 +37,6 @@ static void sys_seek (int fd, unsigned position);
 static unsigned sys_tell (int fd);
 static void sys_halt (void);
 
-//static void thread_close_files();
-
 
 static struct lock filesystem_lock;
 
@@ -52,7 +48,6 @@ valid_uaddr (const void * uaddr, unsigned int len)
        !(is_user_vaddr (addr)) ||
        !(pagedir_get_page (thread_current()->pagedir, addr)))
        {
-        //printf("invalid addr\n");
         sys_exit(-1);
         return;
        }
@@ -96,7 +91,6 @@ syscall_handler (struct intr_frame *f UNUSED)
    case SYS_WRITE:
     get_syscall_arg (f, syscall_args, 3);
     f->eax = sys_write (syscall_args[0], syscall_args[1], syscall_args[2]);
-    //printf("written %d\n", f->eax );
     break;  
    case SYS_READ:
     get_syscall_arg (f, syscall_args, 3);
@@ -130,25 +124,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   
 }
 
-// /* Close all file descriptors under a thread */
-// inline static void 
-// thread_close_files()
-// {
-//   //lock_acquire(&filesystem_lock);
-//   struct list_elem *e, *old_e;
-//   for (e = list_begin(&thread_current()->file_descriptors);
-//        e != list_end(&thread_current()->file_descriptors);
-//        )
-//    {
-//      struct file_descriptor * fd_s = list_entry(e, struct file_descriptor, elem);
-//      file_close(fd_s -> file_pointer);
-//      old_e = e;
-//      e = list_next(e);
-//      list_remove(old_e);
-//      free (fd_s);
-//    }
-//   //lock_release(&filesystem_lock);
-// }
+
 
 /* Get the type of system call */
 static int 
@@ -193,7 +169,6 @@ get_fdstruct(int fd)
     struct file_descriptor *f = list_entry (e, struct file_descriptor, elem);
     if (f->fd == fd) return f;
    }
-  //printf("NULL!\n");
   return NULL;
 }
 
@@ -243,6 +218,7 @@ sys_open (const char *file)
   fd_s->file_pointer = r;
   strlcpy (fd_s->name, file, strlen (file));
   list_push_back(&thread_current()->file_descriptors, &fd_s->elem);
+  
   lock_release(&filesystem_lock);
   return fd_s->fd;
 }
@@ -253,10 +229,13 @@ sys_close (int fd)
   if (fd < 2) sys_exit(-1) ;
   struct file_descriptor * fd_s = get_fdstruct(fd);
   if (!fd_s) sys_exit(-1) ;
+
   lock_acquire (&filesystem_lock);
+
   file_close (fd_s->file_pointer);
   list_remove (&fd_s->elem);
   free (fd_s);
+
   lock_release (&filesystem_lock);
 }
 
@@ -264,8 +243,16 @@ void
 sys_exit (int status)
 {
 
-
-
+  /* Release file descriptors held by the thread */
+  lock_acquire(&filesystem_lock);
+  while (!list_empty(&thread_current()->file_descriptors))
+  {
+    struct list_elem *e = list_pop_front(&thread_current()->file_descriptors);
+    struct file_descriptor * fd_s = list_entry(e, struct file_descriptor, elem);
+    file_close(fd_s -> file_pointer);
+    free (fd_s);
+  }
+  lock_release(&filesystem_lock);
 
 
   thread_current()->exit_status = status;
@@ -273,7 +260,6 @@ sys_exit (int status)
 
   thread_exit();
 }
-
 
 
 
@@ -303,8 +289,6 @@ sys_write (int fd, const void *buffer, unsigned size)
       return -1;
     }
 
-    //thread_foreach (check_filename_open, fd_s->name);
-
     int r = file_write (fd_s->file_pointer, buffer, size);
     
     lock_release (&filesystem_lock);
@@ -319,7 +303,8 @@ sys_read (int fd, void *buffer, unsigned size)
   lock_acquire (&filesystem_lock);
   if (fd == 0)
    {
-     //get_line(buffer);   
+     //get_line(buffer); 
+     //TODO: get from stdin  
      return 0;
    }
   else if (fd == 1)
@@ -340,7 +325,6 @@ sys_read (int fd, void *buffer, unsigned size)
     lock_release (&filesystem_lock);
     return r;
    }
-  //lock_release (&filesystem_lock);
 }
 
 static int 
@@ -362,14 +346,12 @@ sys_exec (const char *cmd_line)
   int r = process_execute (cmd_line);
   lock_release (&filesystem_lock);
 
-  //printf("exec: %d\n", r);
   return r;
 }
 
 static int 
 sys_wait (pid_t pid)
 {
-  //printf("waiting %d:\n", pid);
   return process_wait(pid);
 }
 
@@ -399,15 +381,3 @@ sys_halt (void)
 {
   shutdown_power_off();
 }
-
-
-// static void 
-// check_filename_open (struct thread *t, void *str_) 
-// {
-//   const char * str = str_;
-//   if (strcmp(str, t->name) == 0)
-//   {
-//     lock_release (&filesystem_lock);
-//     sys_exit(-1);
-//   }
-// }

@@ -44,8 +44,9 @@ process_execute (const char *file_name)
     *dptr = *sptr;
   *dptr = '\0';
 
-  struct proc_init *info = malloc(sizeof(struct proc_init));
+  struct proc_init *info = malloc (sizeof (struct proc_init));
   info->name = fn_copy;
+  /* Wait until the new process has been created */
   sema_init (&info->init_sem, 0);
   /* Create a new thread to execute FILE_NAME. */
   
@@ -111,18 +112,16 @@ start_process (void * info_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  //printf("%d wait for %d setted\n", thread_current()->tid, child_tid);
-  if(list_empty(&thread_current()->child_list))
+  if (list_empty (&thread_current()->child_list))
   {
-    //printf("empty\n");
     return -1;
   }
-  //if (child_tid == 12){
-  //  printf("FUCK\n");
-  //}
+
 
   struct list_elem *e;
   struct thread *child_thread = NULL;
+
+  /* Find the child thread in child_list */
   for (e = list_begin (&thread_current() -> child_list);
        e != list_end (&thread_current() -> child_list);
        e = list_next (e))
@@ -130,19 +129,22 @@ process_wait (tid_t child_tid UNUSED)
     child_thread = list_entry (e, struct thread, child_elem);
     if (child_thread -> tid == child_tid) break;
    }
+
+  /* If not found */
   if (!child_thread || child_thread -> tid != child_tid) {
-    //printf("not found %d\n", child_tid);
     return -1;
   }
-  //e->being_waited = true;
+
   list_remove(e);
-  //printf("found: %d\n",child_thread->tid);
-  //if (child_thread -> status == THREAD_DYING)
-  //  return child_thread->exit_status;
+
+  /* Wait the child thread to exit */
   sema_down (&child_thread -> be_waited);
+  
+  /* Get the exit status of the child thread */
   int r = child_thread -> exit_status;
+
+  /* Continue the exit process of child thread */
   sema_up (&child_thread-> exit_sem);
-  //printf("found: %d\n",r);
   return r;
 }
 
@@ -277,15 +279,13 @@ load (char *file_name, void (**eip) (void), void **esp)
 
   int argc = 0;
   char * argv[64];
-  //char fcopy[256];
-  //strcpy(fcopy, file_name, )
+
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
        token = strtok_r (NULL, " ", &save_ptr))
        {
          argv[argc++] = token;
        }
-    
-  //printf("!!%s\n",argv[1]);
+
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
