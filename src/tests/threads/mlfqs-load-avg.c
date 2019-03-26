@@ -147,7 +147,6 @@ test_mlfqs_load_avg (void)
       int load_avg;
       timer_sleep (sleep_until - timer_ticks ());
       load_avg = thread_get_load_avg ();
-      printf("main %d %d\n", thread_get_priority(), thread_get_recent_cpu());
       msg ("After %d seconds, load average=%d.%02d.",
            i * 2, load_avg / 100, load_avg % 100);
     }
@@ -160,9 +159,8 @@ load_thread (void *seq_no_)
   int sleep_time = TIMER_FREQ * (10 + seq_no);
   int spin_time = sleep_time + TIMER_FREQ * THREAD_CNT;
   int exit_time = TIMER_FREQ * (THREAD_CNT * 2);
-  printf("thread %d %d %d:\n", seq_no, thread_get_priority(), thread_get_recent_cpu());
+
   timer_sleep (sleep_time - timer_elapsed (start_time));
-  printf("wakeup %d %d %d:\n", seq_no, thread_get_priority(), thread_get_recent_cpu());
   while (timer_elapsed (start_time) < spin_time)
     continue;
   timer_sleep (exit_time - timer_elapsed (start_time));

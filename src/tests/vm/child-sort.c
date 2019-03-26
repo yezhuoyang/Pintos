@@ -23,6 +23,7 @@ main (int argc UNUSED, char *argv[])
   quiet = true;
 
   CHECK ((handle = open (argv[1])) > 1, "open \"%s\"", argv[1]);
+
   size = read (handle, buf, sizeof buf);
   for (i = 0; i < size; i++)
     histogram[buf[i]]++;
@@ -36,5 +37,6 @@ main (int argc UNUSED, char *argv[])
   seek (handle, 0);
   write (handle, buf, size);
   close (handle);
+  
   return 123;
 }
