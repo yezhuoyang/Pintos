@@ -23,6 +23,9 @@
 #include "threads/pte.h"
 #include "threads/thread.h"
 #include "threads/input.h"
+#include "vm/spt.h"
+#include "vm/swap.h"
+#include "vm/frame.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #include "userprog/exception.h"
@@ -101,6 +104,9 @@ pintos_init (void)
   /* Initialize memory system. */
   palloc_init (user_page_limit);
   malloc_init ();
+  
+  frame_table_init ();
+
   paging_init ();
 
   /* Segmentation. */
@@ -128,6 +134,7 @@ pintos_init (void)
   /* Initialize file system. */
   ide_init ();
   locate_block_devices ();
+  swap_init ();
   filesys_init (format_filesys);
 #endif
 

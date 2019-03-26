@@ -4,7 +4,9 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <hash.h>
 #include "threads/synch.h"
+#include "filesys/file.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -109,6 +111,7 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+    struct hash spt;                   /* Supplemental Page Table */
 
     uint32_t exit_status;
 
@@ -123,7 +126,6 @@ struct thread
     unsigned fd_index;
 
     struct file * prog_file;
-    
 #endif
 
     /* Owned by thread.c. */
@@ -142,6 +144,10 @@ struct thread
     /* MLFQS use */
     int nice;
     int recent_cpu;
+
+    /* mmap use */
+    int mapid;
+    struct list mmap_list;
   };
 
 /* If false (default), use round-robin scheduler.

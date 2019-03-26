@@ -5,6 +5,10 @@
 #include "userprog/syscall.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
+#include "vm/frame.h"
+#include "vm/spt.h"
+#include "vm/swap.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -154,12 +158,44 @@ page_fault (struct intr_frame *f)
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
+  
+  //printf ("PF %p %d %d\n", fault_addr, page_fault_cnt, user);
+
+  if (not_present && is_valid_user_addr (fault_addr)){
+    struct spt_entry *spte = get_spte (fault_addr);
+    if (spte != NULL)
+    {
+      if (spt_load (spte))
+      {
+        spte->pinned = false;
+        return;
+      }
+    } 
+    else if (is_stack_growth (fault_addr, f->esp))
+    {
+      if (spt_stack_growth (fault_addr)) return;
+    } 
+  } 
+  
+  sys_exit(-1);
   printf ("Page fault at %p: %s error %s page in %s context.\n",
           fault_addr,
           not_present ? "not present" : "rights violation",
           write ? "writing" : "reading",
           user ? "user" : "kernel");
-  sys_exit(-1);
   kill (f);
+  return;
 }
 
+bool 
+is_valid_user_addr (const void *addr)
+{
+  return is_user_vaddr (addr) && addr > ((void *) 0x08048000);
+}
+
+bool 
+is_stack_growth (const void *addr, void *esp)
+{
+  //printf ("judge %p, %p\n", addr, esp);
+  return addr >= esp - 32;
+}

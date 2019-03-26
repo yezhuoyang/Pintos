@@ -1,8 +1,6 @@
 /* Hash table.
-
    This data structure is thoroughly documented in the Tour of
    Pintos for Project 3.
-
    See hash.h for basic information. */
 
 #include "hash.h"
@@ -74,7 +72,6 @@ hash_clear (struct hash *h, hash_action_func *destructor)
 }
 
 /* Destroys hash table H.
-
    If DESTRUCTOR is non-null, then it is first called for each
    element in the hash.  DESTRUCTOR may, if appropriate,
    deallocate the memory used by the hash element.  However,
@@ -137,7 +134,6 @@ hash_find (struct hash *h, struct hash_elem *e)
 /* Finds, removes, and returns an element equal to E in hash
    table H.  Returns a null pointer if no equal element existed
    in the table.
-
    If the elements of the hash table are dynamically allocated,
    or own resources that are, then it is the caller's
    responsibility to deallocate them. */
@@ -180,18 +176,14 @@ hash_apply (struct hash *h, hash_action_func *action)
 }
 
 /* Initializes I for iterating hash table H.
-
    Iteration idiom:
-
       struct hash_iterator i;
-
       hash_first (&i, h);
       while (hash_next (&i))
         {
           struct foo *f = hash_entry (hash_cur (&i), struct foo, elem);
           ...do something with f...
         }
-
    Modifying hash table H during iteration, using any of the
    functions hash_clear(), hash_destroy(), hash_insert(),
    hash_replace(), or hash_delete(), invalidates all
@@ -210,7 +202,6 @@ hash_first (struct hash_iterator *i, struct hash *h)
 /* Advances I to the next element in the hash table and returns
    it.  Returns a null pointer if no elements are left.  Elements
    are returned in arbitrary order.
-
    Modifying a hash table H during iteration, using any of the
    functions hash_clear(), hash_destroy(), hash_insert(),
    hash_replace(), or hash_delete(), invalidates all
@@ -427,4 +418,3 @@ remove_elem (struct hash *h, struct hash_elem *e)
   h->elem_cnt--;
   list_remove (&e->list_elem);
 }
-

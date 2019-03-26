@@ -4,6 +4,7 @@
 #include <round.h>
 #include <stdint.h>
 #include <string.h>
+#include "../threads/thread.h"
 
 /* Auxiliary data for vsnprintf_helper(). */
 struct vsnprintf_aux 
@@ -88,6 +89,20 @@ printf (const char *format, ...)
   return retval;
 }
 
+int dbgprintf (const char *format, ...)
+{
+  /*
+  printf ("%d : ", thread_current ()->tid);
+  va_list args;
+  int retval;
+
+  va_start (args, format);
+  retval = vprintf (format, args);
+  va_end (args);
+
+  return retval;*/
+}
+
 /* printf() formatting internals. */
 
 /* A printf() conversion. */

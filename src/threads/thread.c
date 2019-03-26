@@ -274,7 +274,9 @@ thread_current (void)
      have overflowed its stack.  Each thread has less than 4 kB
      of stack, so a few big automatic arrays or moderate
      recursion can cause stack overflow. */
-  ASSERT (is_thread (t));
+  if (!(is_thread (t))){
+    ASSERT (is_thread (t));
+  }
   ASSERT (t->status == THREAD_RUNNING);
 
   return t;
@@ -293,10 +295,8 @@ void
 thread_exit (void) 
 {
   ASSERT (!intr_context ());
-
-
-
-#ifdef USERPROG
+  
+#ifdef USERPROG  
   process_exit ();
 
   /* Close the file pointer of the executing file */
@@ -620,6 +620,9 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
 
+  t->mapid = 0;
+  list_init (&t->mmap_list);
+  
   #ifdef USERPROG
   sema_init (&t->exit_sem, 0);
   // t->to_exit = false;
@@ -634,7 +637,6 @@ init_thread (struct thread *t, const char *name, int priority)
 
   t->prog_file = NULL;
   #endif
-  //printf("everything is ok1\n");
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

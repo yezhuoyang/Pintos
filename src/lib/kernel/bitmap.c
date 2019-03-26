@@ -319,6 +319,8 @@ bitmap_scan (const struct bitmap *b, size_t start, size_t cnt, bool value)
 size_t
 bitmap_scan_and_flip (struct bitmap *b, size_t start, size_t cnt, bool value)
 {
+  //printf ("%p, %d, %d, %d\n", b, start, cnt, value);
+  //printf ("%d\n", b->bit_cnt);
   size_t idx = bitmap_scan (b, start, cnt, value);
   if (idx != BITMAP_ERROR) 
     bitmap_set_multiple (b, idx, cnt, !value);
