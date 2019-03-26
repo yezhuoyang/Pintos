@@ -155,8 +155,6 @@ spt_stack_growth (void *addr)
   frame_free (frame_addr);
   return false;
 success:
-  if (intr_context()) spte->pinned = false;
-
   return true;
 }
 

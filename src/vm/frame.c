@@ -31,13 +31,14 @@ frame_table_init (void)
   lock_init (&frame_table_lock);
   //hash_init (&frame_table, fte_addr, fte_addr_less, NULL);
   list_init (&frame_table);
+  frame_table_index = malloc (sizeof (struct frame_entry *) * init_ram_pages);
 }
 
 void *
 frame_get (struct spt_entry *spte, bool ZERO)
 {
   lock_acquire (&frame_table_lock);
-
+ 
   void *addr = palloc_get_page (ZERO ? PAL_USER | PAL_ZERO : PAL_USER);
 
   while (addr == NULL)
@@ -50,6 +51,7 @@ frame_get (struct spt_entry *spte, bool ZERO)
     fe->owner_thread = thread_current ();
     fe->spte = spte;
     list_push_back (&frame_table, &fe->elem);
+    frame_table_index [pg_no (vtop (addr))] = fe;
     lock_release (&frame_table_lock);
   } 
   else
@@ -65,18 +67,20 @@ frame_free (void *frame)
   if (frame == NULL) return;
   lock_acquire (&frame_table_lock);
 
-  struct list_elem *e;
-  for (e = list_begin (&frame_table); e != list_end (&frame_table); e = list_next (e))
+  intptr_t frame_pgno = pg_no (vtop (frame));
+  if (frame_table_index [frame_pgno] == NULL)
   {
-    struct frame_entry *fe = list_entry (e, struct frame_entry, elem);
-    if (fe->frame_addr == frame)
-    {
-      list_remove (e);
-      palloc_free_page (frame);
-      free (fe);
-      break;
-    }
+    PANIC ("frame to free not exist");
   }
+  else
+  {
+    struct frame_entry *fe = frame_table_index [frame_pgno];
+    list_remove (&fe->elem);
+    palloc_free_page (frame);
+    free (fe);
+    frame_table_index [frame_pgno] = NULL;
+  }
+
   lock_release (&frame_table_lock);
 }
 
@@ -84,8 +88,6 @@ frame_free (void *frame)
 void *
 frame_evict (enum palloc_flags flags)
 {
-  //struct hash_iterator it;
-
   for (; ;)
   {
     struct list_elem *e = list_begin (&frame_table);
@@ -126,6 +128,7 @@ frame_evict (enum palloc_flags flags)
           pagedir_clear_page (pd, upage);
           palloc_free_page (fe->frame_addr);
           list_remove (&fe->elem);
+          frame_table_index [pg_no (vtop (fe->frame_addr))] = NULL;
           free (fe);
           
           return palloc_get_page (flags);

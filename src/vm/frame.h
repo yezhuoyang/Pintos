@@ -17,7 +17,7 @@ struct frame_entry
   };
 
 struct lock frame_table_lock;
-//struct hash frame_table;
+struct frame_entry **frame_table_index;
 struct list frame_table;
 
 void frame_table_init (void);

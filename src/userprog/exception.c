@@ -173,7 +173,12 @@ page_fault (struct intr_frame *f)
     } 
     else if (is_stack_growth (fault_addr, f->esp))
     {
-      if (spt_stack_growth (fault_addr)) return;
+      if (spt_stack_growth (fault_addr)) 
+      {
+        spte = get_spte (fault_addr);
+        spte->pinned = false;
+        return;
+      }
     } 
   } 
   
