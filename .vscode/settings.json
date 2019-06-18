@@ -3,5 +3,6 @@
         "debug.h": "c",
         "*.inc": "c",
         "thread.h": "c"
-    }
+    },
+    "python.pythonPath": "/anaconda3/bin/python3"
 }

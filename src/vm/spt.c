@@ -68,17 +68,15 @@ spt_load_file (struct spt_entry *spte)
   if (kpage == NULL)
     return false;
 
-  if (page_read_bytes > 0)
+  lock_acquire (&filesystem_lock);
+  if (file_read_at (file, kpage, page_read_bytes, ofs) != (int) page_read_bytes)
   {
-    lock_acquire (&filesystem_lock);
-    if (file_read_at (file, kpage, page_read_bytes, ofs) != (int) page_read_bytes)
-    {
-      frame_free (kpage);
-      lock_release (&filesystem_lock);
-      return false; 
-    }
+    frame_free (kpage);
     lock_release (&filesystem_lock);
+    return false; 
   }
+  lock_release (&filesystem_lock);
+
   memset (kpage + page_read_bytes, 0, page_zero_bytes);
   if (!install_page (upage, kpage, writable)) 
   {

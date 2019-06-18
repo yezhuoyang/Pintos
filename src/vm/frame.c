@@ -103,6 +103,7 @@ frame_evict (enum palloc_flags flags)
           pagedir_set_accessed (pd, upage, false);
         else
         {
+          pagedir_clear_page (pd, upage);
           if (fe->spte->type == PAGE_MMAP)
           {
             if (pagedir_is_dirty (pd, upage))
@@ -125,7 +126,6 @@ frame_evict (enum palloc_flags flags)
             }
           } 
           fe->spte->is_present = false;
-          pagedir_clear_page (pd, upage);
           palloc_free_page (fe->frame_addr);
           list_remove (&fe->elem);
           frame_table_index [pg_no (vtop (fe->frame_addr))] = NULL;
