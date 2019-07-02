@@ -18,10 +18,11 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
+#ifdef VM
 #include "vm/frame.h"
 #include "vm/swap.h"
 #include "vm/spt.h"
-
+#endif
 static thread_func start_process NO_RETURN;
 static bool load (char *cmdline, void (**eip) (void), void **esp);
 static void mmap_clear (struct list *mmap_list);
@@ -75,8 +76,9 @@ start_process (void * info_)
   char *file_name = info->name;
   struct intr_frame if_;
   bool success;
-
+#ifdef VM
   spt_init (&thread_current()->spt);
+#endif
   //printf ("ni ma de wei shen me 5\n");
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);

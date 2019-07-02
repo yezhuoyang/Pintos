@@ -620,9 +620,11 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
 
+#ifdef VM
   t->mapid = 0;
   list_init (&t->mmap_list);
-  
+#endif
+
   #ifdef USERPROG
   sema_init (&t->exit_sem, 0);
   // t->to_exit = false;

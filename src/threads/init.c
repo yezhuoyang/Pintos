@@ -23,9 +23,11 @@
 #include "threads/pte.h"
 #include "threads/thread.h"
 #include "threads/input.h"
+#ifdef VM
 #include "vm/spt.h"
 #include "vm/swap.h"
 #include "vm/frame.h"
+#endif
 #ifdef USERPROG
 #include "userprog/process.h"
 #include "userprog/exception.h"
@@ -104,8 +106,10 @@ pintos_init (void)
   /* Initialize memory system. */
   palloc_init (user_page_limit);
   malloc_init ();
-  
+
+#ifdef VM
   frame_table_init ();
+#endif
 
   paging_init ();
 
