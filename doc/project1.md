@@ -78,8 +78,6 @@ When putting one thread into sleeping thread queue, we carefully keep its order 
 
 #### SYNCHRONIZATION
 
-> Think about, in the general case, the possible concurrent threads of execution involved in the pieces of code for the Alarm Clock, and the synchronization needed to provide a correct solution to the problem.
-
 > A3: How are race conditions avoided when multiple threads call
 > `timer_sleep()` simultaneously? How are race conditions avoided when a timer interrupt occurs
 > during a call to `timer_sleep()`?
