@@ -5,109 +5,77 @@
 
 ## GROUP
 
-> Fill in the name and email addresses of your group members.
 
 - Bohan Hou <spectrometer@sjtu.edu.cn>
 - Qidong Su <suqd99@sjtu.edu.cn>
 - Yaxing Cai <caiyaxing@sjtu.edu.cn>
 
-## PRELIMINARIES
-
-> If you have any preliminary comments on your submission, notes for the
-> Instructor, or extra credit, please give them here.
-
-> Please cite any offline or online sources you consulted while
-> preparing your submission, other than the Pintos documentation, course
-> text, lecture notes, and course staff.
-
 ## PROJECT PARTS
-
-> In the documentation that you provide in the following, you need to provide clear, organized, and coherent documentation, not just short, incomplete, or vague "answers to the questions".  The questions are provided to help you structure your thinking around the information you need to convey.
 
 ### A. ARGUMENT PASSING  
 
-#### DATA STRUCTURES
-
-> A1: Copy here the declaration of each new or changed `struct` or
-> `struct` member, `global` or `static` variable, `typedef`, or
-> enumeration.  Document the purpose of each in 25 words or less.
-
 #### ALGORITHMS
 
-> A2: Briefly describe how you implemented argument parsing.  How do
-> you arrange for the elements of argv[] to be in the right order?
-> How do you avoid overflowing the stack page?
+In the function *load*, we split the string file_name into some segments.
 
-#### RATIONALE/JUSTIFICATION
+We add two extra parameters to the function *setup_stack*, that is *argc* and *argv*, with which we can put the arguments in the proper address.  Additionally, we have to put them in the stack inversely (the first arguments is in the lowest address).
 
-> A3: Why does Pintos implement strtok_r() but not strtok()?
+There are many other details in the calling convention, such as the alignment of the address.
 
-> A4: In Pintos, the kernel separates commands into a executable name
-> and arguments.  In Unix-like systems, the shell does this
-> separation.  Identify at least two advantages of the Unix approach.
+We limit the number of arguments to be less than 256.
 
-### SYSTEM CALLS
+### B. SYSTEM CALLS
 
 #### DATA STRUCTURES
 
-> B1: Copy here the declaration of each new or changed `struct` or
-> `struct` member, `global` or `static` variable, `typedef`, or
-> enumeration.  Document the purpose of each in 25 words or less.
+We add some extra data structures to support system calls.
 
-> B2: Describe how file descriptors are associated with open files.
-> Are file descriptors unique within the entire OS or just within a
-> single process?
+```c
+struct thread{
+    uint32_t exit_status; // Store the exit code
+    struct semaphore be_waited; // Whether the thread is waited by the parent thread
+    
+    struct list child_list; // The child threads of this thread
+    struct list_elem child_elem;
+    
+    struct semaphore exit_sem; // Used by the parent thread to control the exit process of the child thread
+	bool to_exit;	// Wheter the thread is ready to exit. It is possible that parent thread is waiting for it, so we just mark it with 'exit' but it will not exit immediately.
+    
+    struct list file_descriptors; // The file descriptors 
+    unsigned fd_index; // The indexof the file descriptor (to be used in the next file_descriptor)
+    
+    struct file * prog_file; // The file pointer of the program executable.
+}
+
+struct file_descriptor
+  {
+    int fd;
+    char name[16];
+    struct file * file_pointer;
+    struct list_elem elem;
+  };
+
+// Because the function start_process accept only one argument, so we create a new struct to pass the arguments, which are neccessary to create a new process.
+struct proc_init {
+    char * name;
+    struct semaphore init_sem; // Only when the program is loaded properly can we start the process
+    bool success;
+};
+
+static struct lock exit_lock; // Avoid modifying the list of threads when it is being read.
+```
+
+
 
 #### ALGORITHMS
 
-> B3: Describe your code for reading and writing user data from the
-> kernel.
+**get the use data**
 
-> B4: Suppose a system call causes a full page (4,096 bytes) of data
-> to be copied from user space into the kernel.  What is the least
-> and the greatest possible number of inspections of the page table
-> (e.g. calls to pagedir_get_page()) that might result?  What about
-> for a system call that only copies 2 bytes of data?  Is there room
-> for improvement in these numbers, and how much?
+To get the user data,  we just read the data from the address *ESP* + 4 and above it, where *ESP* is stored in the *intr_frame*. And we check whether the address is valid.
 
-> B5: Briefly describe your implementation of the "wait" system call
-> and how it interacts with process termination.
+**wait**
 
-> B6: Any access to user program memory at a user-specified address
-> can fail due to a bad pointer value.  Such accesses must cause the
-> process to be terminated.  System calls are fraught with such
-> accesses, e.g. a "write" system call requires reading the system
-> call number from the user stack, then each of the call's three
-> arguments, then an arbitrary amount of user memory, and any of
-> these can fail at any point.  This poses a design and
-> error-handling problem: how do you best avoid obscuring the primary
-> function of code in a morass of error-handling?  Furthermore, when
-> an error is detected, how do you ensure that all temporarily
-> allocated resources (locks, buffers, etc.) are freed?  In a few
-> paragraphs, describe the strategy or strategies you adopted for
-> managing these issues.  Give an example.
+To implement wait, we added several data structures as mentioned before. 
 
-#### SYNCHRONIZATION
+This part is mainly implemented in the function *process_wait*. We just find the child thread and then remove it from the child thread list (because we can't wait for one child thread for twice). And we "down" the semaphore *be_waited* of the child thread, and the parent thread is blocked. After the child thread calls *exit* , *be_waited* is "up"ed again and the parent thread can get the exit code of the child. To ensure that the parent thread gets the exit code before the space of the child thread is deleted, we "down" the *exit_sem* in the *thread_exit* and "up" it again after the parent get the exit code.
 
-> B7: The "exec" system call returns -1 if loading the new executable
-> fails, so it cannot return before the new executable has completed
-> loading.  How does your code ensure this?  How is the load
-> success/failure status passed back to the thread that calls "exec"?
-
-> B8: Consider parent process P with child process C.  How do you
-> ensure proper synchronization and avoid race conditions when P
-> calls wait(C) before C exits?  After C exits?  How do you ensure
-> that all resources are freed in each case?  How about when P
-> terminates without waiting, before C exits?  After C exits?  Are
-> there any special cases?
-
-#### RATIONALE
-
-> B9: Why did you choose to implement access to user memory from the
-> kernel in the way that you did?
-
-> B10: What advantages or disadvantages can you see to your design
-> for file descriptors?
-
-> B11: The default tid_t to pid_t mapping is the identity mapping.
-> If you changed it, what advantages are there to your approach?
