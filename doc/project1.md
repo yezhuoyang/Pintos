@@ -5,24 +5,11 @@
 
 ## GROUP
 
-> Fill in the name and email addresses of your group members.
-
 - Bohan Hou <spectrometer@sjtu.edu.cn>
 - Qidong Su <suqd99@sjtu.edu.cn>
 - Yaxing Cai <caiyaxing@sjtu.edu.cn>
 
-## PRELIMINARIES
-
-> If you have any preliminary comments on your submission, notes for the
-> Instructor, or extra credit, please give them here.
-
-> Please cite any offline or online sources you consulted while
-> preparing your submission, other than the Pintos documentation, course
-> text, lecture notes, and course staff.
-
 ## PROJECT PARTS
-
-> In the documentation that you provide in the following, you need to provide clear, organized, and coherent documentation, not just short, incomplete, or vague "answers to the questions".  The questions are provided to help you structure your thinking around the information you need to convey.
 
 #### DATA STRUCTURES
 
